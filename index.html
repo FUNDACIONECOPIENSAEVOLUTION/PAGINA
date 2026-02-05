@@ -3,143 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ecopiensa Evolution | Innovación Natural</title>
+    <title>Ecopiensa Evolution | Tuluá - Innovación Sostenible</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js para el fondo 3D -->
+    <!-- Librerías de 3D y Visión Artificial -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- MediaPipe para el seguimiento de manos -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     
     <style>
+        :root {
+            --primary-green: #4ade80; /* Verde brillante */
+            --dark-green: #064e3b;
+            --clay-color: #a8b808;
+        }
         body, html {
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            background-color: #0a0a0a;
+            background-color: #020617;
             color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
         }
         #canvas-container {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
         }
-        #ui-layer {
+        /* Cursor virtual para interacción con mano */
+        #hand-cursor {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            background: rgba(74, 222, 128, 0.4);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            transition: transform 0.1s ease, width 0.2s, height 0.2s;
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.8);
+        }
+        .section-content {
             position: relative;
             z-index: 10;
-            pointer-events: none;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+            min-height: 100vh;
+            display: none;
+            padding-top: 100px;
+            padding-bottom: 50px;
         }
-        .interactive-element {
-            pointer-events: auto;
+        .section-active {
+            display: block;
+            animation: slideIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
         }
-        #video-preview {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 160px;
-            height: 120px;
-            border-radius: 12px;
-            border: 2px solid #37dddd;
-            transform: scaleX(-1);
-            z-index: 100;
-            background: #1a1a1a;
-            object-fit: cover;
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
         }
-        .status-badge {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            background: rgba(0,0,0,0.6);
-            border-radius: 20px;
-            border: 1px solid #37dddd;
-            font-size: 12px;
-            z-index: 100;
+        .glass-panel {
+            background: rgba(6, 78, 59, 0.2);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 32px;
         }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 2rem;
+        .nav-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary-green);
+            transition: width 0.3s;
+        }
+        .nav-btn:hover::after {
+            width: 100%;
+        }
+        #video-hidden {
+            display: none;
+        }
+        .green-gradient-text {
+            background: linear-gradient(to right, #4ade80, #a8b808);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
     </style>
 </head>
 <body>
 
+    <div id="hand-cursor"></div>
     <div id="canvas-container"></div>
-    <video id="video-preview" autoplay playsinline></video>
-    
-    <div class="status-badge" id="status">
-        <span id="status-text">Iniciando IA...</span>
-    </div>
+    <video id="video-hidden" playsinline></video>
 
-    <div id="ui-layer" class="px-6">
-        <nav class="absolute top-0 w-full p-8 flex justify-between items-center interactive-element">
-            <div class="text-2xl font-bold tracking-tighter flex items-center gap-2">
-                <div class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
-                    <span class="text-black text-xs">EE</span>
+    <!-- Navegación Corporativa -->
+    <nav class="fixed top-0 w-full z-[100] p-4 md:p-6 bg-black/60 backdrop-blur-md border-b border-green-500/20">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="showSection('home')">
+                <img src="https://static.wixstatic.com/media/27997d_1f8ac09f823d443ab08441baed42fa60~mv2.png" alt="Logo" class="h-10 md:h-14">
+                <div class="flex flex-col">
+                    <span class="font-black text-lg md:text-xl tracking-tighter uppercase leading-none">ECOPIENSA</span>
+                    <span class="text-[10px] md:text-xs font-bold text-green-400 tracking-[0.4em] uppercase">EVOLUTION</span>
                 </div>
-                <span>ECOPIENSA <span class="text-emerald-400">EVOLUTION</span></span>
             </div>
-            <div class="hidden md:flex gap-8 text-sm font-medium uppercase tracking-widest opacity-80">
-                <a href="#" class="hover:text-emerald-400 transition">Inicio</a>
-                <a href="#" class="hover:text-emerald-400 transition">Sobre Nosotros</a>
-                <a href="#" class="hover:text-emerald-400 transition">Proyectos</a>
-                <a href="#" class="hover:text-emerald-400 transition">Donar</a>
+            <div class="flex gap-3 md:gap-6 text-[10px] md:text-xs font-bold uppercase tracking-widest">
+                <button onclick="showSection('nosotros')" class="nav-btn transition py-2 px-1">Fundación</button>
+                <button onclick="showSection('servicios')" class="nav-btn transition py-2 px-1">Servicios</button>
+                <button onclick="showSection('miembros')" class="nav-btn transition py-2 px-1">Equipo</button>
+                <button onclick="showSection('finca')" class="nav-btn transition py-2 px-1">Turismo</button>
+                <a href="https://wa.me/57322070501" target="_blank" class="bg-green-500 text-black px-4 py-2 rounded-full hover:bg-white transition flex items-center gap-2">
+                    <span>WHATSAPP</span>
+                </a>
             </div>
-        </nav>
+        </div>
+    </nav>
 
-        <div class="glass-card max-w-3xl animate-in fade-in zoom-in duration-1000">
-            <h1 class="text-5xl md:text-7xl font-black mb-4 leading-tight uppercase">
-                Arcilla Natural <br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Para la Salud</span>
+    <!-- SECCIÓN: INICIO (HOME) -->
+    <section id="home" class="section-content section-active flex flex-col justify-center items-center">
+        <div class="text-center px-4 max-w-5xl">
+            <div class="relative inline-block mb-10">
+                <div class="absolute inset-0 bg-green-500/20 blur-3xl rounded-full"></div>
+                <img src="https://static.wixstatic.com/media/27997d_1f8ac09f823d443ab08441baed42fa60~mv2.png" alt="Logo Grande" class="h-40 md:h-64 relative z-10 drop-shadow-2xl">
+            </div>
+            <h1 class="text-5xl md:text-8xl font-black mb-6 leading-tight uppercase tracking-tighter">
+                Evolución <span class="green-gradient-text">Ambiental</span>
             </h1>
-            <p class="text-lg md:text-xl opacity-70 mb-8 max-w-xl mx-auto">
-                Transformando la gestión ambiental y el bienestar holístico en Colombia. Interactúa con el entorno moviendo tu mano frente a la cámara.
+            <p class="text-base md:text-xl opacity-80 mb-10 max-w-2xl mx-auto leading-relaxed">
+                Desde <b>Tuluá, Valle del Cauca</b>, lideramos la transformación industrial y municipal hacia el desarrollo sostenible global.
             </p>
-            <div class="flex flex-col md:flex-row gap-4 justify-center interactive-element">
-                <button class="bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-4 px-10 rounded-full transition-all transform hover:scale-105">
-                    CONOCE NUESTROS PRODUCTOS
-                </button>
-                <button class="border border-white/20 hover:bg-white/10 text-white font-bold py-4 px-10 rounded-full transition-all">
-                    CLUB DE REHABILITACIÓN
-                </button>
+            <p class="text-xs uppercase tracking-[0.5em] text-green-400 animate-bounce">Mueve tu mano para interactuar</p>
+        </div>
+    </section>
+
+    <!-- SECCIÓN: NOSOTROS (MISIÓN/VISIÓN) -->
+    <section id="nosotros" class="section-content">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <div>
+                    <h2 class="text-green-400 text-sm font-bold tracking-[0.5em] uppercase mb-4">Sobre Nosotros</h2>
+                    <h3 class="text-4xl md:text-6xl font-black mb-8 uppercase leading-none">Transformación <br>Integral</h3>
+                    <p class="text-lg opacity-80 mb-10">
+                        Somos una organización dedicada a la transformación ambiental y el bienestar integral en Colombia. Nacemos con la visión de evolucionar la conciencia social hacia un equilibrio con la naturaleza, integrando la tecnología, la industria y el desarrollo.
+                    </p>
+                    <div class="grid grid-cols-1 gap-6">
+                        <div class="glass-panel p-8 border-l-4 border-green-500">
+                            <h4 class="text-green-400 font-bold uppercase tracking-widest mb-3">Misión</h4>
+                            <p class="opacity-70 leading-relaxed">Generar sostenibilidad a nivel industrial, municipal y global a través de la integración de procesos tecnológicos avanzados y gestión de recursos naturales para el bienestar humano.</p>
+                        </div>
+                        <div class="glass-panel p-8 border-l-4 border-lime-500">
+                            <h4 class="text-lime-400 font-bold uppercase tracking-widest mb-3">Visión</h4>
+                            <p class="opacity-70 leading-relaxed">Liderar la transición hacia un modelo de desarrollo donde la industria y la naturaleza coexistan en perfecta armonía, posicionándonos como referentes de innovación verde en Latinoamérica.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute -inset-4 bg-green-500/10 blur-2xl rounded-full"></div>
+                    <img src="https://static.wixstatic.com/media/cd7cb750dedd83a9f6e4577d270d6a2a.wix_mp" alt="Naturaleza" class="rounded-[48px] relative z-10 shadow-2xl grayscale hover:grayscale-0 transition duration-700">
+                    <div class="absolute bottom-10 -left-10 glass-panel p-6 z-20">
+                        <p class="text-3xl font-black text-green-400 leading-none">100%</p>
+                        <p class="text-[10px] uppercase font-bold opacity-60">Compromiso Tuluá</p>
+                    </div>
+                </div>
             </div>
         </div>
+    </section>
 
-        <div class="absolute bottom-10 w-full text-xs opacity-40 interactive-element">
-            <p>NIT: 900998128 | COLOMBIA | FUNDACIÓN ECOPIENSA EVOLUTION © 2026</p>
+    <!-- SECCIÓN: SERVICIOS (GESTIÓN RESIDUOS) -->
+    <section id="servicios" class="section-content">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <h2 class="text-green-400 text-sm font-bold tracking-[0.5em] uppercase mb-4 text-center">Nuestra Operación</h2>
+            <h3 class="text-4xl md:text-6xl font-black mb-16 uppercase">Gestión de Residuos</h3>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass-panel p-10 group hover:bg-green-500/10 transition">
+                    <div class="text-5xl mb-6">♻️</div>
+                    <h4 class="text-xl font-bold mb-4 uppercase tracking-tighter">Reciclaje Industrial</h4>
+                    <p class="text-sm opacity-60">Implementamos sistemas de economía circular para empresas, transformando desechos en materias primas.</p>
+                </div>
+                <div class="glass-panel p-10 group hover:bg-green-500/10 transition">
+                    <div class="text-5xl mb-6">🏗️</div>
+                    <h4 class="text-xl font-bold mb-4 uppercase tracking-tighter">Construcción y Demolición</h4>
+                    <p class="text-sm opacity-60">Gestión técnica de escombros y materiales de obra, cumpliendo con toda la normativa ambiental municipal.</p>
+                </div>
+                <div class="glass-panel p-10 group hover:bg-green-500/10 transition">
+                    <div class="text-5xl mb-6">🍃</div>
+                    <h4 class="text-xl font-bold mb-4 uppercase tracking-tighter">Residuos Orgánicos</h4>
+                    <p class="text-sm opacity-60">Tratamiento de materia orgánica para regeneración de suelos y biomasa sostenible.</p>
+                </div>
+            </div>
+            <div class="mt-16 glass-panel p-8 max-w-2xl mx-auto">
+                <p class="font-bold text-green-400 mb-2 uppercase tracking-widest">Soporte Municipal</p>
+                <p class="opacity-70">Asesoramos a municipios en el desarrollo de planes de gestión de residuos y estrategias de desarrollo sostenible de alto impacto.</p>
+            </div>
         </div>
-    </div>
+    </section>
+
+    <!-- SECCIÓN: MIEMBROS -->
+    <section id="miembros" class="section-content">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <h2 class="text-4xl md:text-6xl font-black mb-16 uppercase">Liderazgo Corporativo</h2>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
+                <!-- Miembro 1 -->
+                <div class="glass-panel p-10 transition group">
+                    <div class="w-32 h-32 bg-zinc-800 rounded-[30%] mx-auto mb-6 flex items-center justify-center border-2 border-green-500/30">
+                        <span class="text-5xl">👔</span>
+                    </div>
+                    <h4 class="text-xl font-black">Olmer Andrade</h4>
+                    <p class="text-xs text-green-400 uppercase font-black tracking-widest mb-6 mt-1">Director de Proyectos</p>
+                    <p class="text-sm opacity-60 italic leading-relaxed">"Evolucionando la industria a través de la gerencia técnica y la sostenibilidad."</p>
+                </div>
+                <!-- Miembro 2 -->
+                <div class="glass-panel p-10 transition">
+                    <div class="w-32 h-32 bg-zinc-800 rounded-[30%] mx-auto mb-6 flex items-center justify-center border-2 border-green-500/30">
+                        <span class="text-5xl">🌿</span>
+                    </div>
+                    <h4 class="text-xl font-black">Equipo Técnico</h4>
+                    <p class="text-xs text-green-400 uppercase font-black tracking-widest mb-6 mt-1">Gestión Ambiental</p>
+                    <p class="text-sm opacity-60 italic leading-relaxed">Especialistas en cambio climático y restauración de ecosistemas locales.</p>
+                </div>
+                <!-- Miembro 3 -->
+                <div class="glass-panel p-10 transition">
+                    <div class="w-32 h-32 bg-zinc-800 rounded-[30%] mx-auto mb-6 flex items-center justify-center border-2 border-green-500/30">
+                        <span class="text-5xl">🛡️</span>
+                    </div>
+                    <h4 class="text-xl font-black">Operaciones</h4>
+                    <p class="text-xs text-green-400 uppercase font-black tracking-widest mb-6 mt-1">Gestión de Riesgos</p>
+                    <p class="text-sm opacity-60 italic leading-relaxed">Rescatistas e instructores dedicados a la seguridad y comando de incidentes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN: FINCA (TURISMO) -->
+    <section id="finca" class="section-content">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="glass-panel p-8 md:p-16 flex flex-col lg:flex-row gap-12 items-center">
+                <div class="flex-1">
+                    <h2 class="text-green-400 text-sm font-bold tracking-[0.5em] uppercase mb-4">Experiencia Holística</h2>
+                    <h3 class="text-4xl md:text-7xl font-black mb-8 uppercase leading-none">Finca <br>Campestre</h3>
+                    <div class="space-y-4 mb-10">
+                        <p class="text-lg opacity-80">Ubicada en la zona rural de Tuluá, contamos con Registro Nacional de Turismo (RNT) para ofrecerte una estancia de bienestar total.</p>
+                        <ul class="text-sm space-y-2 opacity-60 font-medium">
+                            <li class="flex items-center gap-3">⭐ Senderismo y Meditación Ambiental</li>
+                            <li class="flex items-center gap-3">⭐ Tratamientos Naturales con Arcilla</li>
+                            <li class="flex items-center gap-3">⭐ Eventos Corporativos Sostenibles</li>
+                        </ul>
+                    </div>
+                    <a href="https://wa.me/57322070501" class="inline-block bg-white text-black font-black px-12 py-5 rounded-full hover:bg-green-500 transition-all uppercase tracking-widest">Consultar Disponibilidad</a>
+                </div>
+                <div class="flex-1 grid grid-cols-2 gap-4">
+                    <img src="https://static.wixstatic.com/media/27997d_889cb00727dc47d88c36fdfd2691f4bb~mv2.jpeg" class="rounded-3xl shadow-xl transform -rotate-3 hover:rotate-0 transition duration-500">
+                    <img src="https://static.wixstatic.com/media/27997d_4a2d9eb46bbc4c4a922eafff325fc44d~mv2.jpg" class="rounded-3xl shadow-xl mt-12 transform rotate-3 hover:rotate-0 transition duration-500">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="relative z-10 p-10 text-center opacity-30 text-[10px] uppercase tracking-[0.4em] mt-20">
+        NIT: 900998128 | Tuluá, Valle del Cauca, Colombia | Fundación Ecopiensa Evolution © 2026
+    </footer>
 
     <script>
-        // --- CONFIGURACIÓN DE THREE.JS ---
-        let scene, camera, renderer, particles, smokeParticles = [];
-        const particleCount = 1500;
-        let targetMouse = { x: 0, y: 0 };
-        
+        // --- NAVEGACIÓN SPA ---
+        function showSection(id) {
+            document.querySelectorAll('.section-content').forEach(s => s.classList.remove('section-active'));
+            const target = document.getElementById(id);
+            if (target) {
+                target.classList.add('section-active');
+                window.scrollTo({top: 0, behavior: 'smooth'});
+                
+                // Cambiar comportamiento del humo según la página
+                if (id === 'home') {
+                    particleBehavior = 'smoke';
+                } else {
+                    particleBehavior = 'background';
+                }
+            }
+        }
+
+        // --- LÓGICA THREE.JS (HUMO VERDE DINÁMICO) ---
+        let scene, camera, renderer, particles;
+        const particleCount = 2500;
+        let handPos = { x: 0, y: 0 };
+        let isPinching = false;
+        let particleBehavior = 'smoke';
+
         function initThree() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5;
+            camera.position.z = 6;
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // Crear partículas (humo/polvo estético)
             const geometry = new THREE.BufferGeometry();
             const positions = new Float32Array(particleCount * 3);
             const colors = new Float32Array(particleCount * 3);
@@ -147,21 +309,23 @@
             for (let i = 0; i < particleCount; i++) {
                 positions[i * 3] = (Math.random() - 0.5) * 15;
                 positions[i * 3 + 1] = (Math.random() - 0.5) * 15;
-                positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 8;
 
-                colors[i * 3] = 0.21; // R (basado en el color #37dddd del logo)
-                colors[i * 3 + 1] = 0.86; // G
-                colors[i * 3 + 2] = 0.86; // B
+                // Variaciones de verde esmeralda y lima
+                const mix = Math.random();
+                colors[i * 3] = mix * 0.2; // Poco rojo
+                colors[i * 3 + 1] = 0.5 + Math.random() * 0.4; // Mucho verde
+                colors[i * 3 + 2] = mix * 0.3; // Un poco de azul
             }
 
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
             const material = new THREE.PointsMaterial({
-                size: 0.05,
+                size: 0.035,
                 vertexColors: true,
                 transparent: true,
-                opacity: 0.6,
+                opacity: 0.4,
                 blending: THREE.AdditiveBlending
             });
 
@@ -173,39 +337,44 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            
+            const posAttr = particles.geometry.attributes.position;
+            const time = Date.now() * 0.001;
 
-            // Rotación suave de fondo
-            particles.rotation.y += 0.001;
-            particles.rotation.x += 0.0005;
-
-            // Interacción con la "mano" o mouse
-            const positions = particles.geometry.attributes.position.array;
             for (let i = 0; i < particleCount; i++) {
-                const ix = i * 3;
-                const iy = i * 3 + 1;
+                let px = posAttr.getX(i);
+                let py = posAttr.getY(i);
+                let pz = posAttr.getZ(i);
+
+                // Movimiento base tipo humo
+                pz += Math.sin(time + i) * 0.002;
                 
-                // Efecto de atracción/repulsión hacia el target (mano)
-                const dx = positions[ix] - targetMouse.x;
-                const dy = positions[iy] - targetMouse.y;
+                // Reacción a la mano
+                const dx = px - handPos.x;
+                const dy = py - handPos.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                
+
                 if (dist < 2) {
-                    positions[ix] += dx * 0.02;
-                    positions[iy] += dy * 0.02;
+                    const power = isPinching ? 0.08 : 0.02;
+                    px += dx * power;
+                    py += dy * power;
                 }
                 
-                // Retorno suave a posición original (simulado)
-                positions[ix] *= 0.999; 
-                positions[iy] *= 0.999;
-            }
-            particles.geometry.attributes.position.needsUpdate = true;
+                // Retorno muy suave a zona central
+                px *= 0.9995;
+                py *= 0.9995;
 
+                posAttr.setXYZ(i, px, py, pz);
+            }
+            posAttr.needsUpdate = true;
+            
+            particles.rotation.y += 0.0003;
             renderer.render(scene, camera);
         }
 
-        // --- CONFIGURACIÓN DE IA (MEDIAPIPE) ---
-        const videoElement = document.getElementById('video-preview');
-        const statusText = document.getElementById('status-text');
+        // --- LÓGICA DE IA (MEDIAPIPE HANDS) ---
+        const videoElement = document.getElementById('video-hidden');
+        const cursorEl = document.getElementById('hand-cursor');
 
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
@@ -214,22 +383,53 @@
         hands.setOptions({
             maxNumHands: 1,
             modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
         });
 
         hands.onResults((results) => {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmark = results.multiHandLandmarks[0][8]; // Dedo índice
-                // Convertir coordenadas normalizadas (0-1) a espacio Three.js (-7 a 7 aprox)
-                targetMouse.x = (0.5 - landmark.x) * 14; 
-                targetMouse.y = (0.5 - landmark.y) * 10;
+                const landmarks = results.multiHandLandmarks[0];
+                const indexFinger = landmarks[8];
+                const thumb = landmarks[4];
+
+                // Mapeo del cursor (invertido por cámara)
+                const x = (1 - indexFinger.x) * window.innerWidth;
+                const y = indexFinger.y * window.innerHeight;
                 
-                statusText.innerText = "Mano detectada - Interactuando";
-                statusText.style.color = "#4ade80";
+                cursorEl.style.display = 'block';
+                cursorEl.style.left = x + 'px';
+                cursorEl.style.top = y + 'px';
+
+                // Coordenadas para Three.js
+                handPos.x = (0.5 - indexFinger.x) * 14;
+                handPos.y = (0.5 - indexFinger.y) * 10;
+
+                // Detección de Pellizco (Click)
+                const dist = Math.sqrt(
+                    Math.pow(indexFinger.x - thumb.x, 2) + 
+                    Math.pow(indexFinger.y - thumb.y, 2)
+                );
+
+                if (dist < 0.04) {
+                    if (!isPinching) {
+                        isPinching = true;
+                        cursorEl.style.width = '15px';
+                        cursorEl.style.height = '15px';
+                        cursorEl.style.background = '#ffffff';
+                        
+                        // Acción de click real
+                        const element = document.elementFromPoint(x, y);
+                        if (element) element.click();
+                    }
+                } else {
+                    isPinching = false;
+                    cursorEl.style.width = '30px';
+                    cursorEl.style.height = '30px';
+                    cursorEl.style.background = 'rgba(74, 222, 128, 0.4)';
+                }
             } else {
-                statusText.innerText = "Buscando mano...";
-                statusText.style.color = "#37dddd";
+                cursorEl.style.display = 'none';
             }
         });
 
@@ -241,31 +441,22 @@
             height: 480
         });
 
-        // Inicio del sistema
         window.onload = () => {
             initThree();
-            cameraInst.start()
-                .then(() => {
-                    statusText.innerText = "Cámara lista";
-                })
-                .catch(err => {
-                    statusText.innerText = "Cámara no disponible";
-                    console.error(err);
-                });
+            cameraInst.start().catch(() => console.log("Cámara deshabilitada: usando modo mouse."));
         };
 
-        // Resize handler
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Fallback para mouse si no hay cámara
+        // Fallback Mouse para navegación tradicional
         window.addEventListener('mousemove', (e) => {
-            if (statusText.innerText === "Cámara no disponible" || statusText.innerText === "Buscando mano...") {
-                targetMouse.x = (e.clientX / window.innerWidth - 0.5) * 14;
-                targetMouse.y = -(e.clientY / window.innerHeight - 0.5) * 10;
+            if (cursorEl.style.display === 'none') {
+                handPos.x = (e.clientX / window.innerWidth - 0.5) * 14;
+                handPos.y = -(e.clientY / window.innerHeight - 0.5) * 10;
             }
         });
 
